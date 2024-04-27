@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fyp_safe/NotificationPage.dart';
+import 'package:fyp_safe/RolePage.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -55,7 +56,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: AuthenticationWrapper(),
-      routes: {NotificationPage.route: (context) => const NotificationPage()},
+      routes: {NotificationPage.route: (context) =>  NotificationPage(),
+        SignUpPage.route: (context) =>  SignUpPage()},
     );
   }
 }
@@ -81,7 +83,7 @@ class AuthenticationWrapper extends StatelessWidget {
             return const MyHomePage();
           } else {
             // If the user is not authenticated, show the login/signup page
-            return const SignUpPage();
+            return const RolePage();
           }
         }
       },

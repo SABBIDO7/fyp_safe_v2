@@ -15,7 +15,7 @@ import 'main.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
-
+  static const route = '/signup-screen';
   @override
   _SignUpPageState createState() => _SignUpPageState();
 }
@@ -38,6 +38,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late String? _deviceToken;
+
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +73,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final roleValue = ModalRoute.of(context)!.settings.arguments as int;
 
     return Scaffold(
       appBar: AppBar(
@@ -102,7 +105,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 } else if (_currentStep == 1) {
                   if (!_showCaptureButton && _imageCount == maxImages) {
                     //await sendmQtt();
-                    await _publishImages();
+                    await _publishImages(roleValue);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -112,6 +115,36 @@ class _SignUpPageState extends State<SignUpPage> {
                     );
                   }
                 }
+              },
+              onStepCancel: () {
+                if (_currentStep > 0) {
+                  setState(() {
+                    _currentStep--;
+                    _showCameraPreview=false;
+                  });
+                }else{
+                }
+              },
+              controlsBuilder: (context, ControlsDetails controlsDetails) {
+                return Container(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          child: Text('NEXT'),
+                          onPressed: controlsDetails.onStepContinue,
+                        ),
+                      ),
+                      if (_currentStep!= 0)
+                        Expanded(
+                          child: TextButton(
+                            child: Text('BACK'),
+                            onPressed: controlsDetails.onStepCancel,
+                          ),
+                        ),
+                    ],
+                  ),
+                );
               },
               steps: [
                 Step(
@@ -286,164 +319,61 @@ class _SignUpPageState extends State<SignUpPage> {
     });
   }
 
-  Future<int> sendmQtt() async {
-    try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      User? user = userCredential.user;
-      print('User registered: ${user!.uid}');
-    } catch (e) {
-      print('Error registering user: $e');
-      // Handle error here
-      if (e is FirebaseAuthException) {
-        if (e.code == 'email-already-in-use') {
-          setState(() {
-            _errorMessage =
-                'The email address is already in use by another account.';
-          });
-        } else {
-          setState(() {
-            _errorMessage =
-                'An unexpected error occurred. Please try again later.';
-          });
-        }
-      }
-    }
-
-    // Save user details in Firestore
-    await FirebaseFirestore.instance.collection('userDetails').doc().set(
-        {
-          'username': _usernameController.text,
-          'email': _emailController.text,
-          'role': 1,
-        },
-        SetOptions(
-            merge:
-                true)); // Use SetOptions.merge to create the document if it doesn't exist
-    print('User details saved in Firestore');
-
-    print('usernameeeeeeeeeeeeeeee, $_usernameController.text');
-    Map<String, dynamic> payloadData = {
-      'username': _usernameController.text,
-      'images': _capturedImages
-          .map((image) => base64Encode(image))
-          .toList(), // Convert image bytes to base64 strings
-    };
-
-    // Convert the JSON object to a string
-    String payloadString = json.encode(payloadData);
-
-    client.logging(on: true);
-    client.setProtocolV311();
-    client.keepAlivePeriod = 20;
-    client.onDisconnected = onDisconnected;
-    client.onConnected = onConnected;
-    client.onSubscribed = onSubscribed;
-    client.pongCallback = pong;
-
-    final connMess = MqttConnectMessage()
-        .withClientIdentifier('Mqtt_MyClientUniqueId')
-        .withWillTopic('willtopic')
-        .withWillMessage('My Will message')
-        .startClean()
-        .withWillQos(MqttQos.atLeastOnce);
-
-    print('EXAMPLE::Mosquitto client connecting....');
-    client.connectionMessage = connMess;
-
-    try {
-      await client.connect();
-    } on NoConnectionException catch (e) {
-      print('EXAMPLE::client exception - $e');
-      client.disconnect();
-    }
-
-    if (client.connectionStatus!.state == MqttConnectionState.connected) {
-      print('EXAMPLE::Mosquitto client connected');
-    } else {
-      print(
-          'EXAMPLE::ERROR Mosquitto client connection failed - disconnecting, status is ${client.connectionStatus}');
-      client.disconnect();
-    }
-
-    const pubTopic = 'topicSafe/train';
-
-    final builder = MqttClientPayloadBuilder();
-
-    builder.addString(_captureMessage);
-
-    // client.publishMessage('your_topic', MqttQos.exactlyOnce, builder.payload!);
-
-    client.publishMessage(pubTopic, MqttQos.exactlyOnce, builder.payload!);
-
-    print('EXAMPLE::Sleeping....');
-    await MqttUtilities.asyncSleep(60);
-
-    print('EXAMPLE::Disconnecting');
-    client.disconnect();
-
-    print('EXAMPLE::Exiting normally');
-    return 0;
-  }
-
-  void onSubscribed(String topic) {
-    print('EXAMPLE::Subscription confirmed for topic $topic');
-  }
-
-  void onDisconnected() {
-    print('EXAMPLE::OnDisconnected client callback - Client disconnection');
-    if (client.connectionStatus!.disconnectionOrigin ==
-        MqttDisconnectionOrigin.solicited) {
-      print('EXAMPLE::OnDisconnected callback is solicited, this is correct');
-    } else {
-      print(
-          'EXAMPLE::OnDisconnected callback is unsolicited or none, this is incorrect - exiting');
-    }
-    if (pongCount == 3) {
-      print('EXAMPLE:: Pong count is correct');
-    } else {
-      print('EXAMPLE:: Pong count is incorrect, expected 3. actual $pongCount');
-    }
-  }
-
-  void onConnected() {
-    print(
-        'EXAMPLE::OnConnected client callback - Client connection was successful');
-  }
-
-  void pong() {
-    print('EXAMPLE::Ping response client callback invoked');
-    pongCount++;
-  }
-
-  Future<void> _publish(String topic, Uint8List payload) async {
-    print("Publishing to topic: $topic");
-    print('ffddddddfdf $payload');
-    await _connect();
-    final payloadBuffer = Uint8Buffer();
-    payloadBuffer.addAll(payload);
-    if (client.connectionStatus?.state == MqttConnectionState.connected) {
-      try {
-        await client.publishMessage(topic, MqttQos.exactlyOnce, payloadBuffer);
-        print('Payload published successfully');
-      } catch (e) {
-        print('Error publishing payload: $e');
-      }
-    } else {
-      print('Error: MQTT client is not connected');
-    }
-  }
-
-  Future<void> _publishImages() async {
+  Future<void> _publishImages(int roleValue) async {
     await client.connect();
-    // print('immmmmmmmmmmmmmmmmmmmm, $images');
+
+    // Check if the roleValue is admin
+    if (roleValue == 1) {
+      // Check if role 1 (admin) already exists
+      final adminQuery = await FirebaseFirestore.instance
+          .collection('userDetails')
+          .where('role', isEqualTo: 1)
+          .get();
+
+      if (adminQuery.docs.isNotEmpty) {
+        // Role 1 (admin) already exists, show alert
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Admin exist'),
+              content: Text('The safe already has an admin. You cannot sign up as an admin.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+        return; // Exit the method
+      }
+    }
+
+    // Continue with the rest of the sign-up process
+    // Check if the username already exists
+    final usernameQuery = await FirebaseFirestore.instance
+        .collection('userDetails')
+        .where('username', isEqualTo: _usernameController.text)
+        .get();
+
+    if (usernameQuery.docs.isNotEmpty) {
+      // Username already exists, show snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('The username already exists. Please choose a different username.'),
+        ),
+      );
+      return; // Exit the method
+    }
+
     // Save user details in Firebase Authentication
     try {
       UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
@@ -456,51 +386,52 @@ class _SignUpPageState extends State<SignUpPage> {
         if (e.code == 'email-already-in-use') {
           setState(() {
             _errorMessage =
-                'The email address is already in use by another account.';
+            'The email address is already in use by another account.';
           });
         } else {
           setState(() {
             _errorMessage =
-                'An unexpected error occurred. Please try again later.';
+            'An unexpected error occurred. Please try again later.';
           });
         }
       }
     }
 
     // Save user details in Firestore
-    _deviceToken = await _firebaseMessaging.getToken();
+    String? _deviceToken = await _firebaseMessaging.getToken();
 
     await FirebaseFirestore.instance.collection('userDetails').doc().set(
-        {
-          'username': _usernameController.text,
-          'email': _emailController.text,
-          'role': 1,
-          'token': _deviceToken,
-        },
-        SetOptions(
-            merge:
-                true)); // Use SetOptions.merge to create the document if it doesn't exist
+      {
+        'username': _usernameController.text,
+        'email': _emailController.text,
+        'role': roleValue,
+        'token': _deviceToken,
+      },
+      SetOptions(
+        merge: true,
+      ),
+    );
     print('User details saved in Firestore');
 
-    // Show dialog to inform user about successful sign-up
-    // showDialog(
-    //   context: context,
-    //   builder: (BuildContext context) {
-    //     return AlertDialog(
-    //       title: Text('Sign Up Successful'),
-    //       content: Text('You have successfully signed up.'),
-    //       actions: [
-    //         TextButton(
-    //           onPressed: () {
-    //             Navigator.of(context).pop(); // Close the dialog
-    //             _navigateToHomePage(context); // Navigate to the home page
-    //           },
-    //           child: Text('OK'),
-    //         ),
-    //       ],
-    //     );
-    //   },
-    // );
+    //Show dialog to inform user about successful sign-up
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Sign Up Successful'),
+          content: Text('You have successfully signed up.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MyHomePage()));
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
 
     // // Publish images
     // images.forEach((imageBytes) {
