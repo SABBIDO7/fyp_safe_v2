@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:fyp_safe/PassCheckPage.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -25,9 +29,14 @@ class NotificationPage extends StatelessWidget {
     final message =
     ModalRoute.of(context)!.settings.arguments as RemoteMessage?;
     if (message != null && message.notification != null) {
+      if (message.notification!.title != null &&
+          message.notification!.title! == 'Response Accepted') {
+        // If title contains 'Enter Your Password', navigate to PassCheckPage
+        return PassCheckPage(message:message); // Assuming PassCheckPage is a StatelessWidget
+      } else {
       return Scaffold(
         appBar: AppBar(
-          title: Text('New Page'),
+          title: Text('Notification'),
         ),
         body: Center(
           child: Column(
@@ -72,9 +81,43 @@ class NotificationPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async{
                       // Publish MQTT message for accept with payload '1'
-                      publishMQTTMessage('topicSafe/openServo', '1');
+                      if (message != null &&
+                          message.notification != null &&
+                          message.notification!.title != null &&
+                          message.notification!.title!.contains('Registration')) {
+                        String? username = message.data['username'];
+                        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+                            .collection('userDetails')
+                            .where('username', isEqualTo: username)
+                            .get();
+
+                        if (querySnapshot.docs.isNotEmpty) {
+                          //Access the first (and only) document directly
+                          DocumentSnapshot doc = querySnapshot.docs.first;
+                          //Update the status field
+                          await doc.reference.update({'status': 'accepted'});
+                        } else {
+                          print('No document found for username: $username');
+                        }
+                        Map<String, dynamic> payloadMap = {
+                          'username': username,
+                          'status': 'Accepted',
+                        };
+                        String payloadString = jsonEncode(payloadMap);
+                        publishMQTTMessage('topicSafe/UserRegistration', payloadString);
+                      }else{
+                        String? username = message.data['username'];
+                        Map<String, dynamic> payloadMap = {
+                          'username': username,
+                          'status': 'Accepted',
+                        };
+                        String payloadString = jsonEncode(payloadMap);
+                        print("anaa fetettttttttt $username");
+                      publishMQTTMessage('topicSafe/AccessAuthorization', payloadString);
+                      }
+                      Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -83,11 +126,30 @@ class NotificationPage extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // Publish MQTT message for decline with payload '0'
-                      publishMQTTMessage('topicSafe/openServo', '0');
+                      // Publish MQTT message for accept with payload '1'
+                      if (message != null &&
+                          message.notification != null &&
+                          message.notification!.title != null &&
+                          message.notification!.title!.contains('Registration')) {
+                        Map<String, dynamic> payloadMap = {
+                          'username': '',
+                          'status': 'Rejected',
+                        };
+                        String payloadString = jsonEncode(payloadMap);
+                        publishMQTTMessage('topicSafe/UserRegistration', payloadString);
+
+                      }else{
+                        Map<String, dynamic> payloadMap = {
+                          'username': '',
+                          'status': 'Rejected',
+                        };
+                        String payloadString = jsonEncode(payloadMap);
+                        publishMQTTMessage('topicSafe/AccessAuthorization', payloadString);
+                      }
+                      Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: Colors.green,
                     ),
                     child: Text('Decline'),
                   ),
@@ -97,7 +159,7 @@ class NotificationPage extends StatelessWidget {
           ),
         ),
       );
-    } else {
+    }} else {
       // Handle the case when message or message.notification is null
       return Scaffold(
         appBar: AppBar(

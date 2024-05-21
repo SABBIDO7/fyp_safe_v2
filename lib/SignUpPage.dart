@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:camera/camera.dart';
+import 'package:fyp_safe/PendingPage.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:typed_data/typed_buffers.dart' show Uint8Buffer;
@@ -12,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'SignInPage.dart';
 import 'main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -129,12 +131,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 return Container(
                   child: Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          child: Text('NEXT'),
-                          onPressed: controlsDetails.onStepContinue,
-                        ),
-                      ),
+
                       if (_currentStep!= 0)
                         Expanded(
                           child: TextButton(
@@ -142,6 +139,12 @@ class _SignUpPageState extends State<SignUpPage> {
                             onPressed: controlsDetails.onStepCancel,
                           ),
                         ),
+                      Expanded(
+                        child: ElevatedButton(
+                          child: Text('NEXT'),
+                          onPressed: controlsDetails.onStepContinue,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -400,17 +403,32 @@ class _SignUpPageState extends State<SignUpPage> {
     // Save user details in Firestore
     String? _deviceToken = await _firebaseMessaging.getToken();
 
+    Map<String, dynamic> userData = {
+      'username': _usernameController.text,
+      'email': _emailController.text,
+      'role': roleValue,
+      'token': _deviceToken,
+      'urlImageRegister': '',
+    };
+
+// Add the status field if roleValue is 0
+    if (roleValue == 0) {
+      userData['status'] = 'pending';
+    }
+
+// Set user details in Firestore
     await FirebaseFirestore.instance.collection('userDetails').doc().set(
-      {
-        'username': _usernameController.text,
-        'email': _emailController.text,
-        'role': roleValue,
-        'token': _deviceToken,
-      },
+      userData,
       SetOptions(
         merge: true,
       ),
     );
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('username', _usernameController.text);
+    prefs.setString('email', _emailController.text);
+    prefs.setString('role', roleValue.toString());
+
+
     print('User details saved in Firestore');
 
     //Show dialog to inform user about successful sign-up
@@ -424,7 +442,11 @@ class _SignUpPageState extends State<SignUpPage> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MyHomePage()));
+                if (roleValue == 1) {
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MyHomePage()));
+                }else{
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => PendingPage()));
+                }
               },
               child: Text('OK'),
             ),
@@ -451,12 +473,12 @@ class _SignUpPageState extends State<SignUpPage> {
     List<Uint8List> secondBatch = _capturedImages.sublist(5);
     // Publish the first batch
     await _connect();
-    await _publishBatch(firstBatch);
+    await _publishBatch(firstBatch, roleValue);
     // Publish the second batch
-    await _publishBatch(secondBatch);
+    await _publishBatch(secondBatch, roleValue);
   }
 
-  Future<void> _publishBatch(List<Uint8List> images) async {
+  Future<void> _publishBatch(List<Uint8List> images, int roleValue) async {
     List<String> base64Images =
         images.map((imageBytes) => base64Encode(imageBytes)).toList();
 
@@ -482,9 +504,13 @@ class _SignUpPageState extends State<SignUpPage> {
     //builder.addString(_usernameController.text);
     if (client.connectionStatus?.state == MqttConnectionState.connected) {
       try {
+        if(roleValue == 1){
         await client.publishMessage(
-            "topicSafe/train", MqttQos.exactlyOnce, builder.payload!);
-
+            "topicSafe/AdminTrain", MqttQos.exactlyOnce, builder.payload!);
+        }else{
+          await client.publishMessage(
+              "topicSafe/UserTrain", MqttQos.exactlyOnce, builder.payload!);
+        }
         // _capturedImages.forEach((imageBytes) {
         //   final payloadBuffer = Uint8Buffer();
         //   payloadBuffer.addAll(imageBytes);

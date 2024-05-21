@@ -13,7 +13,7 @@ class SignInPage extends StatelessWidget {
     void _navigateToHomePage(BuildContext context) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => HomePage(), // Replace `HomePage()` with the actual home page widget
+          builder: (context) => MyHomePage(), // Replace `HomePage()` with the actual home page widget
         ),
       );
     }
@@ -21,7 +21,7 @@ class SignInPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign In'),
-        backgroundColor: Colors.blue, // Adjust color as needed
+        backgroundColor: Colors.green[700], // Adjust color as needed
       ),
       body: Padding(
         padding: EdgeInsets.all(20),

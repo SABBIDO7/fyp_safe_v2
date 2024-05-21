@@ -39,7 +39,8 @@ dependencies:
   image:
   camera:
   flutter_local_notifications:
-
+  shared_preferences:
+  web_socket_channel:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
