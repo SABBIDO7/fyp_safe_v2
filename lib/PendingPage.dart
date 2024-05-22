@@ -43,7 +43,8 @@ class PendingPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.pending, // Use an appropriate icon for pending status
+                      Icons
+                          .pending, // Use an appropriate icon for pending status
                       size: 100,
                       color: Colors.orange, // Customize the icon color
                     ),
@@ -70,15 +71,26 @@ class PendingPage extends StatelessWidget {
           } else {
             return Scaffold(
               appBar: AppBar(
-                title: Text('Pending'),
+                title: Text('Accepted'),
                 backgroundColor: Colors.orange, // Customize the app bar color
               ),
               body: Center(
-                child: Text(
-                  'You have been accepted.',
-                  style: TextStyle(
-                    fontSize: 20,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check, // Use an appropriate icon for pending status
+                      size: 100,
+                      color: Colors.orange, // Customize the icon color
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'You have been accepted.',
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );

@@ -55,6 +55,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -62,8 +63,9 @@ class MyApp extends StatelessWidget {
         primaryColor: Colors.green[700],
       ),
       home: AuthenticationWrapper(),
-      routes: {NotificationPage.route: (context) =>  NotificationPage(),
-        SignUpPage.route: (context) =>  SignUpPage(),
+      routes: {
+        NotificationPage.route: (context) => NotificationPage(),
+        SignUpPage.route: (context) => SignUpPage(),
       },
     );
   }
@@ -76,14 +78,26 @@ class AuthenticationWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: _checkAuthentication(context),
-      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator(); // Show a loading indicator while checking authentication
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ); // Show a loading indicator while checking authentication
         } else {
-          if (snapshot.hasData && snapshot.data!) {
+          if (snapshot.hasData) {
             // User is authenticated, navigate to appropriate page
-            return MyHomePage();
+            print("FETT HOME");
+            if (snapshot.data["page"] == "home") {
+              return MyHomePage();
+            } else if (snapshot.data["page"] == "pending") {
+              return PendingPage();
+            } else {
+              return RolePage();
+            }
           } else {
+            print("FETT ROLE");
             // User is not authenticated, show the login/signup page
             return RolePage();
           }
@@ -92,38 +106,39 @@ class AuthenticationWrapper extends StatelessWidget {
     );
   }
 
-  Future<bool> _checkAuthentication(BuildContext context) async {
+  Future<dynamic> _checkAuthentication(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     final username = prefs.getString('username');
-
+    print("fettt honnnnn userrr $username");
     if (username != null) {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('userDetails')
           .where('username', isEqualTo: username)
-          .where('role', isEqualTo: 0)
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
         final userData = querySnapshot.docs.first.data();
         final status = userData['status'];
-
-        if (status == 'pending') {
+        if (userData["role"] == 1) {
+          return {"page": "home", "status": true};
+        } else if (status == 'pending' || status == 'accepted') {
           // User status is pending, navigate to the PendingPage
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => PendingPage()));
-          return false;
+          // Navigator.of(context).pushReplacement(
+          //     MaterialPageRoute(builder: (context) => PendingPage()));
+          return {"page": "pending", "status": true};
         } else {
           //Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => PassCheckPage()));
           // User status is not pending, return true
-          return false;
+          return {"page": "role", "status": false};
         }
       } else {
         // User details not found, handle accordingly (e.g., navigate to a default page)
         // You can add your custom logic here
-        return false;
+        return {"page": "role", "status": false};
       }
     } else {
       // If the user is not authenticated, return false
-      return false;
+      return {"page": "role", "status": false};
     }
   }
 }
@@ -192,7 +207,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -216,7 +230,9 @@ class _HomePageState extends State<HomePage> {
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              color: Colors.pink,
+            ),
           );
         } else if (snapshot.hasError) {
           return Center(
@@ -229,10 +245,13 @@ class _HomePageState extends State<HomePage> {
         } else {
           return ListView(
             children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+              Map<String, dynamic> data =
+                  document.data() as Map<String, dynamic>;
               print("Data from Firestore: $data");
-              String username = data['username'] ?? ''; // null check for username
-              String imageUrl = data['userUrl'] ?? ''; // null check for imageUrl
+              String username =
+                  data['username'] ?? ''; // null check for username
+              String imageUrl =
+                  data['userUrl'] ?? ''; // null check for imageUrl
 
               return Card(
                 child: ListTile(

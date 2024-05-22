@@ -41,7 +41,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late String? _deviceToken;
 
-
   @override
   void initState() {
     super.initState();
@@ -82,160 +81,171 @@ class _SignUpPageState extends State<SignUpPage> {
         title: Text('Sign Up'),
         backgroundColor: Colors.green[700],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Stepper(
-              currentStep: _showCameraPreview ? 1 : _currentStep,
-              onStepContinue: () async {
-                if (_currentStep == 0) {
-                  // First step: validate fields and proceed
-                  if (_validateFields()) {
-                    setState(() {
-                      _currentStep++;
-                    });
-                    _initCamera();
-                  } else {
-                    // Show error message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_errorMessage!),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                } else if (_currentStep == 1) {
-                  if (!_showCaptureButton && _imageCount == maxImages) {
-                    //await sendmQtt();
-                    await _publishImages(roleValue);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Finish capturing first"),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              onStepCancel: () {
-                if (_currentStep > 0) {
-                  setState(() {
-                    _currentStep--;
-                    _showCameraPreview=false;
-                  });
-                }else{
-                }
-              },
-              controlsBuilder: (context, ControlsDetails controlsDetails) {
-                return Container(
-                  child: Row(
-                    children: [
-
-                      if (_currentStep!= 0)
-                        Expanded(
-                          child: TextButton(
-                            child: Text('BACK'),
-                            onPressed: controlsDetails.onStepCancel,
+      body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: Column(
+                children: [
+                  Stepper(
+                    currentStep: _showCameraPreview ? 1 : _currentStep,
+                    onStepContinue: () async {
+                      if (_currentStep == 0) {
+                        // First step: validate fields and proceed
+                        if (_validateFields()) {
+                          setState(() {
+                            _currentStep++;
+                          });
+                          _initCamera();
+                        } else {
+                          // Show error message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(_errorMessage!),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } else if (_currentStep == 1) {
+                        if (!_showCaptureButton && _imageCount == maxImages) {
+                          //await sendmQtt();
+                          await _publishImages(roleValue);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Finish capturing first"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onStepCancel: () {
+                      if (_currentStep > 0) {
+                        setState(() {
+                          _currentStep--;
+                          _showCameraPreview = false;
+                        });
+                      } else {}
+                    },
+                    controlsBuilder:
+                        (context, ControlsDetails controlsDetails) {
+                      return Container(
+                        child: Row(
+                          children: [
+                            if (_currentStep != 0)
+                              Expanded(
+                                child: TextButton(
+                                  child: Text('BACK'),
+                                  onPressed: controlsDetails.onStepCancel,
+                                ),
+                              ),
+                            Expanded(
+                              child: ElevatedButton(
+                                child: Text('NEXT'),
+                                onPressed: controlsDetails.onStepContinue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    steps: [
+                      Step(
+                        title: Text('Enter Username, Email, and Password'),
+                        isActive: !_showCameraPreview,
+                        content: Container(
+                          height: screenHeight *
+                              0.4, // Set the height to 40% of the screen height
+                          child: Column(
+                            children: [
+                              TextField(
+                                controller: _usernameController,
+                                decoration:
+                                    InputDecoration(labelText: 'Username'),
+                              ),
+                              TextField(
+                                controller: _emailController,
+                                decoration: InputDecoration(labelText: 'Email'),
+                              ),
+                              TextField(
+                                controller: _passwordController,
+                                decoration:
+                                    InputDecoration(labelText: 'Password'),
+                                obscureText: true,
+                              ),
+                            ],
                           ),
                         ),
-                      Expanded(
-                        child: ElevatedButton(
-                          child: Text('NEXT'),
-                          onPressed: controlsDetails.onStepContinue,
+                      ),
+                      Step(
+                        title: Text('Capture Images'),
+                        isActive: _showCameraPreview,
+                        content: Container(
+                          height: screenHeight *
+                              0.4, // Set the height to 40% of the screen height
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                if (_showCameraPreview)
+                                  Column(
+                                    children: [
+                                      Container(
+                                        height: screenHeight *
+                                            0.4 *
+                                            0.75, // 75% of the content container's height
+                                        child: CameraPreview(_controller),
+                                      ),
+                                      Visibility(
+                                        visible: _showCaptureButton,
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            if (_imageCount < maxImages) {
+                                              await _captureAndPublishImages();
+                                            }
+                                          },
+                                          child: Text('Capture Image'),
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        _captureMessage,
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+            SizedBox(
+                height:
+                    20), // Add some space between the Stepper and the Sign In button
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignInPage()),
                 );
               },
-              steps: [
-                Step(
-                  title: Text('Enter Username, Email, and Password'),
-                  isActive: !_showCameraPreview,
-                  content: Container(
-                    height: screenHeight *
-                        0.4, // Set the height to 40% of the screen height
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _usernameController,
-                          decoration: InputDecoration(labelText: 'Username'),
-                        ),
-                        TextField(
-                          controller: _emailController,
-                          decoration: InputDecoration(labelText: 'Email'),
-                        ),
-                        TextField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(labelText: 'Password'),
-                          obscureText: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Step(
-                  title: Text('Capture Images'),
-                  isActive: _showCameraPreview,
-                  content: Container(
-                    height: screenHeight *
-                        0.4, // Set the height to 40% of the screen height
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          if (_showCameraPreview)
-                            Column(
-                              children: [
-                                Container(
-                                  height: screenHeight *
-                                      0.4 *
-                                      0.75, // 75% of the content container's height
-                                  child: CameraPreview(_controller),
-                                ),
-                                Visibility(
-                                  visible: _showCaptureButton,
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      if (_imageCount < maxImages) {
-                                        await _captureAndPublishImages();
-                                      }
-                                    },
-                                    child: Text('Capture Image'),
-                                  ),
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  _captureMessage,
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              child: Text('Sign In'),
             ),
-          ),
-          SizedBox(
-              height:
-                  20), // Add some space between the Stepper and the Sign In button
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SignInPage()),
-              );
-            },
-            child: Text('Sign In'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -340,7 +350,8 @@ class _SignUpPageState extends State<SignUpPage> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Admin exist'),
-              content: Text('The safe already has an admin. You cannot sign up as an admin.'),
+              content: Text(
+                  'The safe already has an admin. You cannot sign up as an admin.'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -367,7 +378,8 @@ class _SignUpPageState extends State<SignUpPage> {
       // Username already exists, show snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('The username already exists. Please choose a different username.'),
+          content: Text(
+              'The username already exists. Please choose a different username.'),
         ),
       );
       return; // Exit the method
@@ -376,7 +388,7 @@ class _SignUpPageState extends State<SignUpPage> {
     // Save user details in Firebase Authentication
     try {
       UserCredential userCredential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
@@ -389,12 +401,12 @@ class _SignUpPageState extends State<SignUpPage> {
         if (e.code == 'email-already-in-use') {
           setState(() {
             _errorMessage =
-            'The email address is already in use by another account.';
+                'The email address is already in use by another account.';
           });
         } else {
           setState(() {
             _errorMessage =
-            'An unexpected error occurred. Please try again later.';
+                'An unexpected error occurred. Please try again later.';
           });
         }
       }
@@ -418,16 +430,15 @@ class _SignUpPageState extends State<SignUpPage> {
 
 // Set user details in Firestore
     await FirebaseFirestore.instance.collection('userDetails').doc().set(
-      userData,
-      SetOptions(
-        merge: true,
-      ),
-    );
+          userData,
+          SetOptions(
+            merge: true,
+          ),
+        );
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('username', _usernameController.text);
     prefs.setString('email', _emailController.text);
     prefs.setString('role', roleValue.toString());
-
 
     print('User details saved in Firestore');
 
@@ -443,9 +454,15 @@ class _SignUpPageState extends State<SignUpPage> {
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
                 if (roleValue == 1) {
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MyHomePage()));
-                }else{
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => PendingPage()));
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => MyHomePage()),
+                    (Route<dynamic> route) => false,
+                  );
+                } else {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => PendingPage()),
+                    (Route<dynamic> route) => false,
+                  );
                 }
               },
               child: Text('OK'),
@@ -504,10 +521,10 @@ class _SignUpPageState extends State<SignUpPage> {
     //builder.addString(_usernameController.text);
     if (client.connectionStatus?.state == MqttConnectionState.connected) {
       try {
-        if(roleValue == 1){
-        await client.publishMessage(
-            "topicSafe/AdminTrain", MqttQos.exactlyOnce, builder.payload!);
-        }else{
+        if (roleValue == 1) {
+          await client.publishMessage(
+              "topicSafe/AdminTrain", MqttQos.exactlyOnce, builder.payload!);
+        } else {
           await client.publishMessage(
               "topicSafe/UserTrain", MqttQos.exactlyOnce, builder.payload!);
         }

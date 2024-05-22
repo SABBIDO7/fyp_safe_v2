@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main.dart'; // Import your home page widget
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignInPage extends StatelessWidget {
   const SignInPage({Key? key}) : super(key: key);
@@ -11,10 +13,9 @@ class SignInPage extends StatelessWidget {
     TextEditingController _passwordController = TextEditingController();
 
     void _navigateToHomePage(BuildContext context) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => MyHomePage(), // Replace `HomePage()` with the actual home page widget
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => MyHomePage()),
+        (Route<dynamic> route) => false,
       );
     }
 
@@ -43,13 +44,36 @@ class SignInPage extends StatelessWidget {
               onPressed: () async {
                 try {
                   // Sign in the user using FirebaseAuth
-                  UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                  UserCredential userCredential =
+                      await FirebaseAuth.instance.signInWithEmailAndPassword(
                     email: _emailController.text,
                     password: _passwordController.text,
                   );
 
                   // Get the signed-in user
                   User? user = userCredential.user;
+                  print("User Creds from sign in ${user!.email}");
+                  if (user.email != null) {
+                    print("le2a email");
+                    QuerySnapshot querySnapshot = await FirebaseFirestore
+                        .instance
+                        .collection('userDetails')
+                        .where('email', isEqualTo: user.email)
+                        .get();
+                    if (querySnapshot.docs.isNotEmpty) {
+                      // User found, retrieve status
+
+                      final prefs = await SharedPreferences.getInstance();
+
+                      String username = querySnapshot.docs.first['username'];
+                      print("le2a l user------- $username");
+                      prefs.setString('username', username);
+                      prefs.setString(
+                          'email', querySnapshot.docs.first['email']);
+                      prefs.setString(
+                          'role', querySnapshot.docs.first['role'].toString());
+                    }
+                  }
 
                   // Navigate to the home page or any other action
                   _navigateToHomePage(context);
@@ -79,9 +103,11 @@ class SignInPage extends StatelessWidget {
             SizedBox(height: 20),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Navigate back to the previous page (SignUpPage)
+                Navigator.pop(
+                    context); // Navigate back to the previous page (SignUpPage)
               },
-              child: Text('Create an Account'), // You can adjust the text as needed
+              child: Text(
+                  'Create an Account'), // You can adjust the text as needed
             ),
           ],
         ),

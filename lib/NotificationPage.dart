@@ -27,139 +27,147 @@ class NotificationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message =
-    ModalRoute.of(context)!.settings.arguments as RemoteMessage?;
+        ModalRoute.of(context)!.settings.arguments as RemoteMessage?;
     if (message != null && message.notification != null) {
       if (message.notification!.title != null &&
           message.notification!.title! == 'Response Accepted') {
         // If title contains 'Enter Your Password', navigate to PassCheckPage
-        return PassCheckPage(message:message); // Assuming PassCheckPage is a StatelessWidget
+        return PassCheckPage(
+            message: message); // Assuming PassCheckPage is a StatelessWidget
       } else {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text('Notification'),
-        ),
-        body: Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  message.notification!.title ?? 'No Title',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  message.notification!.body ?? 'No Body',
-                  style: TextStyle(
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-
-              // Display the image from the notification message
-              if (message.notification!.android != null)
-                Image.network(
-                  message.notification!.android!.imageUrl ?? '',
-                  // Provide a placeholder image or loading indicator
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return CircularProgressIndicator();
-                  },
-                  // Adjust width and height as needed
-                  width: 200,
-                  height: 200,
-                ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () async{
-                      // Publish MQTT message for accept with payload '1'
-                      if (message != null &&
-                          message.notification != null &&
-                          message.notification!.title != null &&
-                          message.notification!.title!.contains('Registration')) {
-                        String? username = message.data['username'];
-                        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-                            .collection('userDetails')
-                            .where('username', isEqualTo: username)
-                            .get();
-
-                        if (querySnapshot.docs.isNotEmpty) {
-                          //Access the first (and only) document directly
-                          DocumentSnapshot doc = querySnapshot.docs.first;
-                          //Update the status field
-                          await doc.reference.update({'status': 'accepted'});
-                        } else {
-                          print('No document found for username: $username');
-                        }
-                        Map<String, dynamic> payloadMap = {
-                          'username': username,
-                          'status': 'Accepted',
-                        };
-                        String payloadString = jsonEncode(payloadMap);
-                        publishMQTTMessage('topicSafe/UserRegistration', payloadString);
-                      }else{
-                        String? username = message.data['username'];
-                        Map<String, dynamic> payloadMap = {
-                          'username': username,
-                          'status': 'Accepted',
-                        };
-                        String payloadString = jsonEncode(payloadMap);
-                        print("anaa fetettttttttt $username");
-                      publishMQTTMessage('topicSafe/AccessAuthorization', payloadString);
-                      }
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: Text('Accept'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Publish MQTT message for accept with payload '1'
-                      if (message != null &&
-                          message.notification != null &&
-                          message.notification!.title != null &&
-                          message.notification!.title!.contains('Registration')) {
-                        Map<String, dynamic> payloadMap = {
-                          'username': '',
-                          'status': 'Rejected',
-                        };
-                        String payloadString = jsonEncode(payloadMap);
-                        publishMQTTMessage('topicSafe/UserRegistration', payloadString);
-
-                      }else{
-                        Map<String, dynamic> payloadMap = {
-                          'username': '',
-                          'status': 'Rejected',
-                        };
-                        String payloadString = jsonEncode(payloadMap);
-                        publishMQTTMessage('topicSafe/AccessAuthorization', payloadString);
-                      }
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: Text('Decline'),
-                  ),
-                ],
-              ),
-            ],
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Notification'),
           ),
-        ),
-      );
-    }} else {
+          body: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    message.notification!.title ?? 'No Title',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    message.notification!.body ?? 'No Body',
+                    style: TextStyle(
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+
+                // Display the image from the notification message
+                if (message.notification!.android != null)
+                  Image.network(
+                    message.notification!.android!.imageUrl ?? '',
+                    // Provide a placeholder image or loading indicator
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return CircularProgressIndicator();
+                    },
+                    // Adjust width and height as needed
+                    width: 200,
+                    height: 200,
+                  ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        // Publish MQTT message for accept with payload '1'
+                        if (message != null &&
+                            message.notification != null &&
+                            message.notification!.title != null &&
+                            message.notification!.title!
+                                .contains('Registration')) {
+                          String? username = message.data['username'];
+                          QuerySnapshot querySnapshot = await FirebaseFirestore
+                              .instance
+                              .collection('userDetails')
+                              .where('username', isEqualTo: username)
+                              .get();
+
+                          if (querySnapshot.docs.isNotEmpty) {
+                            //Access the first (and only) document directly
+                            DocumentSnapshot doc = querySnapshot.docs.first;
+                            //Update the status field
+                            await doc.reference.update({'status': 'accepted'});
+                          } else {
+                            print('No document found for username: $username');
+                          }
+                          Map<String, dynamic> payloadMap = {
+                            'username': username,
+                            'status': 'Accepted',
+                          };
+                          String payloadString = jsonEncode(payloadMap);
+                          publishMQTTMessage(
+                              'topicSafe/UserRegistration', payloadString);
+                        } else {
+                          String? username = message.data['username'];
+                          Map<String, dynamic> payloadMap = {
+                            'username': username,
+                            'status': 'Accepted',
+                          };
+                          String payloadString = jsonEncode(payloadMap);
+                          print("anaa fetettttttttt $username");
+                          publishMQTTMessage(
+                              'topicSafe/AccessAuthorization', payloadString);
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: Text('Accept'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Publish MQTT message for accept with payload '1'
+                        if (message != null &&
+                            message.notification != null &&
+                            message.notification!.title != null &&
+                            message.notification!.title!
+                                .contains('Registration')) {
+                          Map<String, dynamic> payloadMap = {
+                            'username': '',
+                            'status': 'Rejected',
+                          };
+                          String payloadString = jsonEncode(payloadMap);
+                          publishMQTTMessage(
+                              'topicSafe/UserRegistration', payloadString);
+                        } else {
+                          Map<String, dynamic> payloadMap = {
+                            'username': '',
+                            'status': 'Rejected',
+                          };
+                          String payloadString = jsonEncode(payloadMap);
+                          publishMQTTMessage(
+                              'topicSafe/AccessAuthorization', payloadString);
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: Text('Decline'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } else {
       // Handle the case when message or message.notification is null
       return Scaffold(
         appBar: AppBar(

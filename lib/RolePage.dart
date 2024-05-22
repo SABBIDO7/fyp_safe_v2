@@ -9,7 +9,7 @@ class RolePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message =
-    ModalRoute.of(context)!.settings.arguments as RemoteMessage?;
+        ModalRoute.of(context)!.settings.arguments as RemoteMessage?;
     return Scaffold(
       appBar: AppBar(
         title: Text('Choose Role'),
