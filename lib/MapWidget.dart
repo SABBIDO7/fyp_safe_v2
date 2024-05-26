@@ -40,24 +40,30 @@ class _MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return _center == null
-        ? Center(child: CircularProgressIndicator())
-        : GoogleMap(
-      onMapCreated: _onMapCreated,
-      initialCameraPosition: CameraPosition(
-        target: _center!,
-        zoom: 50.0,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Maps'),
+        backgroundColor: Colors.green[700],
       ),
-      markers: {
-        Marker(
-          markerId: const MarkerId('Sydney'),
-          position: _center!,
-          infoWindow: const InfoWindow(
-            title: "Sydney",
-            snippet: "Capital of New South Wales",
-          ),
-        ),
-      },
+      body: _center == null
+          ? Center(child: CircularProgressIndicator())
+          : GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _center!,
+                zoom: 50.0,
+              ),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('Sydney'),
+                  position: _center!,
+                  infoWindow: const InfoWindow(
+                    title: "Sydney",
+                    snippet: "Capital of New South Wales",
+                  ),
+                ),
+              },
+            ),
     );
   }
 }

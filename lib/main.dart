@@ -151,17 +151,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _selectedIndex = 0;
-  final List<Widget> _pages = [HomePage(), MapWidget(), LiveStreamingPage()];
-  final PageController _pageController = PageController();
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      _pageController.jumpToPage(index);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,41 +158,41 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text('SAFE'),
         backgroundColor: Colors.green[700],
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.green[700],
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.maps_home_work),
-            label: 'Maps',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.live_tv),
-            label: 'Live',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage()),
+                );
+              },
+              child: const Text('Home'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MapWidget()),
+                );
+              },
+              child: const Text('Maps'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LiveStreamingPage()),
+                );
+              },
+              child: const Text('Live'),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 }
 
@@ -225,47 +214,53 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _userStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(
-              color: Colors.pink,
-            ),
-          );
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        } else if (snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text('No users are trying to access the SAFE'),
-          );
-        } else {
-          return ListView(
-            children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> data =
-                  document.data() as Map<String, dynamic>;
-              print("Data from Firestore: $data");
-              String username =
-                  data['username'] ?? ''; // null check for username
-              String imageUrl =
-                  data['userUrl'] ?? ''; // null check for imageUrl
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notification'),
+        backgroundColor: Colors.green[700],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _userStream,
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: Colors.pink,
+              ),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          } else if (snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Text('No users are trying to access the SAFE'),
+            );
+          } else {
+            return ListView(
+              children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                Map<String, dynamic> data =
+                    document.data() as Map<String, dynamic>;
+                print("Data from Firestore: $data");
+                String username =
+                    data['username'] ?? ''; // null check for username
+                String imageUrl =
+                    data['userUrl'] ?? ''; // null check for imageUrl
 
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(imageUrl),
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(imageUrl),
+                    ),
+                    title: Text(username),
+                    // Add more widgets here if needed
                   ),
-                  title: Text(username),
-                  // Add more widgets here if needed
-                ),
-              );
-            }).toList(),
-          );
-        }
-      },
+                );
+              }).toList(),
+            );
+          }
+        },
+      ),
     );
   }
 }

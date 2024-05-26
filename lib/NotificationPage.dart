@@ -37,7 +37,8 @@ class NotificationPage extends StatelessWidget {
       } else {
         return Scaffold(
           appBar: AppBar(
-            title: Text('Notification'),
+            title: const Text('Live Streaming'),
+            backgroundColor: Colors.green[700],
           ),
           body: Center(
             child: Column(

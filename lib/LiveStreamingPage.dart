@@ -11,7 +11,7 @@ class LiveStreamingPage extends StatefulWidget {
 }
 
 class _LiveStreamingPageState extends State<LiveStreamingPage> {
-  final channel = IOWebSocketChannel.connect('ws://192.168.1.101:8888');
+  final channel = IOWebSocketChannel.connect('ws://192.168.1.106:8888');
   late MqttServerClient client;
   late StreamSubscription _subscription;
   Uint8List? _imageData;
@@ -22,6 +22,8 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
 
     try {
       await client.connect();
+      await publishMQTTMessage("topicSafe/liveStreaming", "1");
+
       print('Connected');
     } catch (e) {
       print('Exception: $e');
@@ -32,6 +34,7 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
   void initState() {
     super.initState();
     _connect();
+    print("ATA3IT L CONNECT");
     _subscription = channel.stream.listen((data) {
       setState(() {
         _imageData = data;
@@ -51,6 +54,10 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Live Streaming'),
+        backgroundColor: Colors.green[700],
+      ),
       body: Center(
         child: _imageData != null
             ? Image.memory(_imageData!)
@@ -72,7 +79,8 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
     builder.addString(payload); // Use the provided payload
     if (client.connectionStatus?.state == MqttConnectionState.connected) {
       try {
-        await client.publishMessage(topic, MqttQos.exactlyOnce, builder.payload!);
+        await client.publishMessage(
+            topic, MqttQos.exactlyOnce, builder.payload!);
         print('Payload published successfully');
       } catch (e) {
         print('Error publishing payload: $e');
