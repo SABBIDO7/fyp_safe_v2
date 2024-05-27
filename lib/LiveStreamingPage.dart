@@ -11,10 +11,10 @@ class LiveStreamingPage extends StatefulWidget {
 }
 
 class _LiveStreamingPageState extends State<LiveStreamingPage> {
-  final channel = IOWebSocketChannel.connect('ws://192.168.1.106:8888');
   late MqttServerClient client;
   late StreamSubscription _subscription;
   Uint8List? _imageData;
+  IOWebSocketChannel? channel;
 
   Future<void> _connect() async {
     client = MqttServerClient('test.mosquitto.org', '1883');
@@ -33,9 +33,20 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
   @override
   void initState() {
     super.initState();
-    _connect();
-    print("ATA3IT L CONNECT");
-    _subscription = channel.stream.listen((data) {
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _connect();
+    print("Connected to MQTT, waiting before starting WebSocket...");
+
+    // Wait for 5 seconds before connecting to the WebSocket server
+    await Future.delayed(Duration(seconds: 5));
+
+    // Now connect to the WebSocket server
+    channel = IOWebSocketChannel.connect('ws://192.168.1.104:8888');
+    print("listenning now ...");
+    _subscription = channel!.stream.listen((data) {
       setState(() {
         _imageData = data;
       });
@@ -69,7 +80,7 @@ class _LiveStreamingPageState extends State<LiveStreamingPage> {
   @override
   void dispose() async {
     _subscription.cancel();
-    channel.sink.close();
+    channel?.sink.close();
     await publishMQTTMessage("topicSafe/liveStreaming", "0");
     super.dispose();
   }

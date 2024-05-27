@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
+import 'dart:async';
+import 'package:mqtt_client/mqtt_client.dart';
 
 class MapWidget extends StatefulWidget {
   @override
@@ -8,6 +11,7 @@ class MapWidget extends StatefulWidget {
 }
 
 class _MapWidgetState extends State<MapWidget> {
+  late MqttServerClient client;
   late GoogleMapController mapController;
   final DatabaseReference _database = FirebaseDatabase.instance.reference();
 
@@ -17,10 +21,31 @@ class _MapWidgetState extends State<MapWidget> {
     mapController = controller;
   }
 
+  Future<void> _connect() async {
+    client = MqttServerClient('test.mosquitto.org', '1883');
+    client.logging(on: false);
+
+    try {
+      await client.connect();
+      await publishMQTTMessage("topicSafe/gps", "1");
+
+      print('Connected');
+    } catch (e) {
+      print('Exception: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _initialize();
+
     _listenToLatLng();
+  }
+
+  Future<void> _initialize() async {
+    await _connect();
+    print("Connected to MQTT, waiting before starting WebSocket...");
   }
 
   void _listenToLatLng() {
@@ -65,5 +90,27 @@ class _MapWidgetState extends State<MapWidget> {
               },
             ),
     );
+  }
+
+  @override
+  void dispose() async {
+    await publishMQTTMessage("topicSafe/gps", "0");
+    super.dispose();
+  }
+
+  Future<void> publishMQTTMessage(String topic, String payload) async {
+    final builder = MqttClientPayloadBuilder();
+    builder.addString(payload); // Use the provided payload
+    if (client.connectionStatus?.state == MqttConnectionState.connected) {
+      try {
+        await client.publishMessage(
+            topic, MqttQos.exactlyOnce, builder.payload!);
+        print('Payload published successfully');
+      } catch (e) {
+        print('Error publishing payload: $e');
+      }
+    } else {
+      print('Error: MQTT client is not connected');
+    }
   }
 }
