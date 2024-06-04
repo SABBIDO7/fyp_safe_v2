@@ -71,8 +71,8 @@ class PendingPage extends StatelessWidget {
           } else {
             return Scaffold(
               appBar: AppBar(
-                title: Text('Accepted'),
-                backgroundColor: Colors.orange, // Customize the app bar color
+                title: Text('Verified'),
+                backgroundColor: Colors.green, // Customize the app bar color
               ),
               body: Center(
                 child: Column(
@@ -81,11 +81,11 @@ class PendingPage extends StatelessWidget {
                     Icon(
                       Icons.check, // Use an appropriate icon for pending status
                       size: 100,
-                      color: Colors.orange, // Customize the icon color
+                      color: Colors.green, // Customize the icon color
                     ),
                     SizedBox(height: 20),
                     Text(
-                      'You have been accepted.',
+                      'Welcome Back',
                       style: TextStyle(
                         fontSize: 20,
                       ),
